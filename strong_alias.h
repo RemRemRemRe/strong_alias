@@ -55,10 +55,8 @@ namespace strong
     template <typename T, typename Name> requires std::is_scalar_v<T>
     struct alias<T, Name> : alias_name<Name>
     {
-    private:
         T value;
 
-    public:
         template<typename... Args> requires (is_alias<Args>&& ...)
         explicit constexpr alias(Args&&... args) noexcept(((std::is_lvalue_reference_v<Args>&& ...) && std::is_nothrow_copy_constructible_v<T>) or ((std::is_rvalue_reference_v<Args> && ...) && std::is_nothrow_move_constructible_v<T>))
             : value{ std::forward<Args>(args)... } { static_assert(sizeof...(Args) <= 1); };
