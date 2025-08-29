@@ -34,6 +34,13 @@ struct NAME final : strong::alias<__VA_ARGS__,NAME> \
 	using strong::alias<__VA_ARGS__,NAME>::alias;\
 }
 
+#define STRONG_ALIAS_EXPLICIT_CONVERSION(NAME, ...) \
+struct NAME final : strong::alias<__VA_ARGS__,NAME> \
+{\
+    using explicit_conversion_from_t = std::true_type;\
+    using strong::alias<__VA_ARGS__,NAME>::alias;\
+}
+
 namespace strong
 {
     template<typename T>
@@ -57,12 +64,18 @@ namespace strong
     {
         T value;
 
+        using explicit_conversion_from_t = std::false_type;
+        
         template<typename... Args> requires (is_alias<Args>&& ...)
         explicit constexpr alias(Args&&... args) noexcept(((std::is_lvalue_reference_v<Args>&& ...) && std::is_nothrow_copy_constructible_v<T>) or ((std::is_rvalue_reference_v<Args> && ...) && std::is_nothrow_move_constructible_v<T>))
             : value{ std::forward<Args>(args)... } { static_assert(sizeof...(Args) <= 1); };
 
-        template<typename Arg> requires(!is_alias<Arg>)
+        template<typename Arg> requires(!Name::explicit_conversion_from_t::value && !is_alias<Arg>)
         constexpr alias(Arg&& arg)  noexcept((std::is_lvalue_reference_v<Arg>&& std::is_nothrow_copy_constructible_v<T>) or (std::is_rvalue_reference_v<Arg> && std::is_nothrow_move_constructible_v<T>))
+            : value{ std::forward<Arg>(arg) } {}
+        
+        template<typename Arg> requires(Name::explicit_conversion_from_t::value && !is_alias<Arg>)
+        explicit constexpr alias(Arg&& arg)  noexcept((std::is_lvalue_reference_v<Arg>&& std::is_nothrow_copy_constructible_v<T>) or (std::is_rvalue_reference_v<Arg> && std::is_nothrow_move_constructible_v<T>))
             : value{ std::forward<Arg>(arg) } {}
 
         // Implicit conversion
