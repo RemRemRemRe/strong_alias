@@ -64,6 +64,7 @@ namespace strong
     {
         T value;
 
+        using underlying_t = T;
         using explicit_conversion_from_t = std::false_type;
         
         template<typename... Args> requires (is_alias<Args>&& ...)
@@ -137,6 +138,7 @@ namespace strong
     struct alias<T, Name> : alias_name<Name>, T
     {
     public:
+        using underlying_t = T;
         using explicit_conversion_from_t = std::false_type;
         
         template<typename... Args>
