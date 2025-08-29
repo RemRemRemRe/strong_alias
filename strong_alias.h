@@ -70,11 +70,11 @@ namespace strong
         explicit constexpr alias(Args&&... args) noexcept(((std::is_lvalue_reference_v<Args>&& ...) && std::is_nothrow_copy_constructible_v<T>) or ((std::is_rvalue_reference_v<Args> && ...) && std::is_nothrow_move_constructible_v<T>))
             : value{ std::forward<Args>(args)... } { static_assert(sizeof...(Args) <= 1); };
 
-        template<typename Arg> requires(!Name::explicit_conversion_from_t::value && !is_alias<Arg>)
+        template<typename Arg> requires(!Name::explicit_conversion_from_t::value and !is_alias<Arg>)
         constexpr alias(Arg&& arg)  noexcept((std::is_lvalue_reference_v<Arg>&& std::is_nothrow_copy_constructible_v<T>) or (std::is_rvalue_reference_v<Arg> && std::is_nothrow_move_constructible_v<T>))
             : value{ std::forward<Arg>(arg) } {}
         
-        template<typename Arg> requires(Name::explicit_conversion_from_t::value && !is_alias<Arg>)
+        template<typename Arg> requires(Name::explicit_conversion_from_t::value and !is_alias<Arg>)
         explicit constexpr alias(Arg&& arg)  noexcept((std::is_lvalue_reference_v<Arg>&& std::is_nothrow_copy_constructible_v<T>) or (std::is_rvalue_reference_v<Arg> && std::is_nothrow_move_constructible_v<T>))
             : value{ std::forward<Arg>(arg) } {}
 
@@ -137,12 +137,18 @@ namespace strong
     struct alias<T, Name> : alias_name<Name>, T
     {
     public:
+        using explicit_conversion_from_t = std::false_type;
+        
         template<typename... Args>
         explicit constexpr alias(Args&&... args)  noexcept(((std::is_lvalue_reference_v<Args> and ...) and std::is_nothrow_copy_constructible_v<T>) or ((std::is_rvalue_reference_v<Args> and ...) and std::is_nothrow_move_constructible_v<T>))
             : T(std::forward<Args>(args)...) {}
 
-        template<typename Arg> requires (not is_alias<rm_cvref_t<Arg>> or is_same_alias<rm_cvref_t<Arg>,Name>)
+        template<typename Arg> requires (!Name::explicit_conversion_from_t::value and not is_alias<rm_cvref_t<Arg>> or is_same_alias<rm_cvref_t<Arg>,Name>)
         constexpr alias(Arg&& arg) noexcept((std::is_lvalue_reference_v<Arg> and std::is_nothrow_copy_constructible_v<T>) or (std::is_rvalue_reference_v<Arg> and std::is_nothrow_move_constructible_v<T>))
+            : T(std::forward<Arg>(arg)) {}
+
+        template<typename Arg> requires (Name::explicit_conversion_from_t::value and not is_alias<rm_cvref_t<Arg>> or is_same_alias<rm_cvref_t<Arg>,Name>)
+        explicit constexpr alias(Arg&& arg) noexcept((std::is_lvalue_reference_v<Arg> and std::is_nothrow_copy_constructible_v<T>) or (std::is_rvalue_reference_v<Arg> and std::is_nothrow_move_constructible_v<T>))
             : T(std::forward<Arg>(arg)) {}
 
         // Increment/Decrement
